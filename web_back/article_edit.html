@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>文章列表</title>
+    <link rel="stylesheet" href="js/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/iconfont.css">
+    <link rel="stylesheet" href="css/main.css">
+    <link type="text/css" rel="stylesheet" href="js/jedate/css/jedate.css">
+    <script src="js/jquery-1.12.4.min.js"></script>
+    <script src="js/jedate/js/jedate.js"></script>
+    <script src="js/tinymce/js/tinymce/tinymce.min.js"></script>
+    <script src="js/tinymce/js/tinymce_setup.js"></script>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="common_title">
+            文章编辑
+        </div>
+        <div class="container-fluid common_con">
+            <form class="form-horizontal article_form" id="myform">
+                <div class="form-group">
+                    <label for="inputEmail3" class="col-sm-2 control-label">文章标题：</label>
+                    <div class="col-sm-10">
+                        <input type="text" name="title" id="edit-title" class="form-control" id="inputEmail3" value="文章标题文字">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="inputPassword3" class="col-sm-2 control-label">文章封面：</label>
+                    <div class="col-sm-10">
+                        <img id="previewImg" name='cover' src="images/pic06.jpg" class="article_cover">
+                        <input type="file" id="edit-file">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="inputEmail3" class="col-sm-2 control-label">文章类别：</label>
+                    <div class="col-sm-4">
+                        <select name="type" class="form-control" id="editCate">
+                            <!-- <option>类别一</option> -->
+                          
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="inputEmail3" class="col-sm-2 control-label">发布时间：</label>
+                    <div class="col-sm-4">
+
+                        <div class="input-group">
+                            <input type="text" name="date" class="form-control" value="2019-05-17" id="dateinput">
+                            <span class="input-group-btn">
+                                <button class="btn btn-default" type="button"
+                                    onclick="jeDate('#dateinput',{trigger:false,format: 'YYYY-MM-DD'})"><i
+                                        class="iconfont icon-icondate"></i></button>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="inputEmail3" class="col-sm-2 control-label">文章内容：</label>
+                    <div class="col-sm-10">
+                        <input type="text" class="form-control" id="rich_content" name="content" placeholder="文章内容" value="文章内容">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-sm-offset-2 col-sm-10">
+                        <button type="submit" class="btn btn-success" id="artEdit">修改</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</body>
+<script src="./js/config.js"></script>
+<script src="./js/article.js"></script>
+<script src="./js/category.js"></script>
+<script src="./js/template-web.js"></script>
+<script type="text/html" id="tempCate">
+    {{each data item}}
+    <option value='{{item.id}}'>{{item.name}}</option>
+    {{/each}}
+</script>
+<script>
+    // 需求：文章编辑
+    // 1.预览图片
+    // 给文件按钮添加change事件 当按钮状态改变后 获取它选中的文件
+    $('#edit-file').change(function() {
+        // console.dir(this)
+        var file = this.files[0];
+        // 给文件设置临时地址 并赋值给预览图片的src属性
+        var path = window.URL.createObjectURL(file);
+        $('#previewImg').prop('src', path);
+    })
+
+    // 2.因为是编辑 so当页面跳转出来时 应获取点击信息的内容 
+    // 从地址栏中解析出当前编辑文章的id     file:///E://article_edit.html?id=1574417240092
+    //  截取字符串substr(起始下标，截取个数)
+    var id = location.search.substr(4);
+    //发送请求 根据id获取文章相关信息 并展示 
+    article.getDetail(id, function(res) {
+        // 获取当前编辑的文章信息的类型id 并选中
+        var typeId = res.data.type;
+        // console.log(res);
+        // 将信息展示到页面上
+        $('#edit-title').val(res.data.title);
+        $('#previewImg').prop('src', res.data.cover);
+        $('#dateinput').val(res.data.date);
+
+        $('#rich_content').val(res.data.content);
+        //    显示文章类型
+        category.show(function(res) {
+
+                // 用模板引擎将获取到的文章类型 渲染到页面上
+                var htmlStr = template('tempCate', res);
+                $('#editCate').html(htmlStr);
+                // 当前编辑的文章信息的类型id 并选中
+                $('#editCate').val(typeId);
+            })
+            // 点击修改 发送请求 在后台改数据
+        $('#artEdit').click(function() {
+            // 以formdata格式获取数据(dom节点) 获取时先设name名称
+            var fd = new FormData(document.getElementById('myform'));
+            // 当前页面没有id 保存时需在添加一个参数id
+            fd.append('id', id);
+            // 且富文本编辑器 只能用自己的方法获取内容
+            fd.set('content', tinyMCE.activeEditor.getContent());
+            // 发送请求 在后台改数据
+            article.edit(fd, function(res) {
+                // console.log(res);
+                if (res.code === 200) {
+                    alert('修改成功')
+                } else {
+                    alert(res.msg)
+                }
+            })
+        })
+
+    })
+</script>
+
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>文章列表</title>
+    <link rel="stylesheet" href="js/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/iconfont.css">
+    <link rel="stylesheet" href="css/main.css">
+    <link type="text/css" rel="stylesheet" href="js/jedate/css/jedate.css">
+    <script src="js/jquery-1.12.4.min.js"></script>
+    <script src="js/jedate/js/jedate.js"></script>
+    <script src="js/tinymce/js/tinymce/tinymce.min.js"></script>
+    <script src="js/tinymce/js/tinymce_setup.js"></script>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="common_title">
+            写文章
+        </div>
+        <div class="container-fluid common_con">
+            <form class="form-horizontal article_form" id="myform">
+                <div class="form-group">
+                    <label for="inputEmail3" class="col-sm-2 control-label">文章标题：</label>
+                    <div class="col-sm-10">
+                        <input type="email" name="title" class="form-control" id="inputEmail3" placeholder="文章标题">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="inputPassword3" class="col-sm-2 control-label">文章封面：</label>
+                    <div class="col-sm-10">
+                        <img for='artCover' id="previewImg" style="width: 200px" src="./images/2.jpg" alt="">
+                    </div>
+                    <div class="col-sm-10">
+                        <input type="file" name="cover" id="exampleInputFile">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="inputEmail3" class="col-sm-2 control-label">文章类别：</label>
+                    <div class="col-sm-4">
+                        <select class="form-control" name="type" id="cateList">
+                            <!-- <option>1</option> -->
+                            
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="inputEmail3" class="col-sm-2 control-label">发布时间：</label>
+                    <div class="col-sm-4">
+
+                        <div class="input-group">
+                            <input type="text" name="date" class="form-control" placeholder="YYYY-MM-DD" id="dateinput">
+                            <span class="input-group-btn">
+                                <button class="btn btn-default" type="button"
+                                    onclick="jeDate('#dateinput',{trigger:false,format: 'YYYY-MM-DD'})"><i
+                                        class="iconfont icon-icondate"></i></button>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="inputEmail3" class="col-sm-2 control-label">文章内容：</label>
+                    <div class="col-sm-10">
+                        <textarea class="form-control" id="rich_content" name="content" placeholder="文章内容">
+                            Lorem ipsum dolor sit amet consectetur adipisicing elit. Assumenda fugiat illo nihil molestias ab. Laborum eius non atque, totam sapiente quae obcaecati assumenda ratione inventore pariatur maiores, qui libero delectus.
+                            </textarea>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-sm-offset-2 col-sm-10">
+                        <button type="submit" class="btn btn-success" onclick='artRelease(0)'>发布</button>
+                        <button type="submit" class="btn btn-default" onclick='artRelease(1)'>存为草稿</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</body>
+<script src="./js/config.js"></script>
+<script src="./js/category.js"></script>
+<script src="./js/template-web.js"></script>
+<script src="./js/article.js"></script>
+<!-- 文章类别模板 -->
+<script type="text/html" id="cateTemp">
+    {{each data item}}
+    <option value='{{item.id}}'>{{item.name}}</option>
+    {{/each}}
+</script>
+<script>
+    // 需求：1.打开页面获取文章类别
+    // 发送请求获取类别信息
+    category.show(function(res) {
+        // console.log(res);
+        // 用模板引擎将获取到的文章类别拼接成字符串 渲染到页面上
+        var htmlStr = template('cateTemp', res);
+        $('#cateList').append(htmlStr);
+    })
+
+    // 2.预览图片
+    // fiel按钮添加change事件 获取选择文件 添加临时地址 赋值给预览图片的src属性
+    $('#exampleInputFile').change(function() {
+        var file = this.files[0];
+        // 添加临时地址
+        var path = window.URL.createObjectURL(file);
+        // console.log(path)
+        $('#previewImg').prop('src', path);
+    })
+
+    // 3.发布文章
+    // 点击发布 获取表单数据  发送请求
+    var artRelease = function(cut) {
+        // 获取表单数据
+        // fd = new FormData(dom节点)
+        var fd = new FormData(document.getElementById('myform'));
+        // console.log(fd.get('type'))
+        // 给表单数据中添加state参数 append追加参数 set添加参数并覆盖已有的参数值
+        if (cut == 0) {
+            fd.set('state', '已发布');
+        } else if (cut == 1) {
+            fd.set('state', '草稿');
+        }
+
+        // 富文本获取内容必须用自己的方法 需改变表单获取的值 引入js
+        // fd.set('content', tinyMCE.activeEditor.getContent())
+        fd.set('content', tinyMCE.activeEditor.getContent());
+
+        // 发送请求 在配置中添加地址接口 方法 并调用
+        article.add(fd, function(res) {
+            console.log(res)
+            if (res.code === 201) {
+                alert('发布成功')
+            } else {
+                alert(res.msg)
+            }
+        })
+    }
+</script>
+
+</html>
